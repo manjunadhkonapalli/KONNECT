@@ -10,15 +10,16 @@ const Axios = axios.create({
 });
 
 
-export async function submitNewPost(text, location, picUrl, setPosts, setNewPost, setError){
+export async function submitNewPost(user,text, location, picUrl, setPosts, setNewPost, setError){
 
     try {
         //make post req to backend      
         //add the part of URL which is not common
         const res = await Axios.post("/", {text, location, picUrl}) //in the bosy, part, send the input data that user inputs
+        const newPost={...res.data, user}
 
         //add new post to top of the array so that lastest posts --> on top
-        setPosts(prev=>[res.data, ...prev])  //add the new post, spread the previous
+        setPosts(prev=>[newPost, ...prev])  //add the new post, spread the previous
         setNewPost({text:"", location:""});
 
 

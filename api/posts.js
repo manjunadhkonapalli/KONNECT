@@ -25,14 +25,7 @@ router.post("/", authMiddleware, async(req, res)=>{
 
         const post = await new PostModel(newPost).save();
        
-        const postCreated = await PostModel.findById(post._id).populate("user") //so thhat we can take them and render onto front end
-        return res.json(postCreated);   //since it is populated, its easy to connect to frontend by loking at its structure
-        
-       // console.log(post);
-       //instead of sending any msg or whole post-> we will just send postId back to frontend(from backend). so that we can use it to display the post on viewport(layout)
-       //return res.json(post) or res.send ("Post created")
-       return res.json(post._id);
-
+        return res.json(post);
     } catch (error) {
         console.log(error);
         return res.status(500).send("Server error");

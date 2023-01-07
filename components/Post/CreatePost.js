@@ -20,6 +20,7 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
     if(name === "media"){
       setMedia(files[0])
         setMediaPreview(URL.createObjectURL(files[0]));
+      return;
     }
 
     setNewPost(prev=>({...prev, [name] : value}));
@@ -41,7 +42,7 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
     }
 
     //after this check, we will call submitPost func
-    await submitNewPost(newPost.text, newPost.location, picUrl, setPosts, setNewPost, setError)
+    await submitNewPost(user,newPost.text, newPost.location, picUrl, setPosts, setNewPost, setError)
 
     //after uplading the inputs to DB -> kind of refreshing the varaibles :)
     setMedia(null);
