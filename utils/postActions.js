@@ -5,7 +5,7 @@ import cookie from "js-cookie"
 
 //Create Axios instance so that no need to pass in headers again and again everytime we make a request
 const Axios = axios.create({
-    baseUrl:`${baseUrl}/api/posts`,
+    baseURL:`${baseUrl}/api/posts`,
     headers:{Authorization : cookie.get("token")}
 });
 
