@@ -1,26 +1,50 @@
 import React, {useState} from 'react'
-import {Card, Icon, Image, Divider, Segment, Button, Popup, Header, Modal, CardDescription, CardContent} from "semantic-ui-react"
+import {Card, Icon, Image, Divider, Segment, Button, Popup, Header, Modal, CardDescription, CardContent, ModalContent} from "semantic-ui-react"
 import PostComments from "./PostComments"
 import CommentInputField from "./CommentInputField"
 import Link from "next/link"
 import calculateTime from "../../utils/calculateTime"
-
+import { deletePost, likePost } from '../../utils/postActions'
+import LikesList from './LikesList'
+import ImageModal from "./ImageModal"
+import NoImageModal from './NoImageModal'
 
 function CardPost({post, user, setPosts, setShowToastr}) {
 
 const [likes, setLikes] = useState(post.likes);
 
 //filtering over the likes array and checking inside it if there is a user with this userId who is loggged in
-const isLiked = 
-  likes.length > 0 && likes.filter(like=>like.user === user._id).length > 0;
+const isLiked = likes.length !== 0 && likes.filter(like=>like.user === user._id).length > 0;
 
 const [comments, setComments] = useState(post.comments)
 
 const [error, setError] = useState(null)  //handles any error inliking, commenting 
 
+const [showModal, setShowModal] = useState(false)
+
+
+function addPropsToModal(){
+  return { post, user, likes, setLikes, isLiked, comments, setComments}
+}
 
   return (
   <>
+  {/* We can place this anywhere we want in the return section(top, middle, bottom). Bcz no matter wherever we placeit, since it is state, -> when it gets updated, that state varibale is automaticllly rendered (def of state itself) */}
+  {showModal && (
+    <Modal 
+      open={showModal} 
+      closeIcon 
+      closeOnDimmerClick 
+      onClose={() => setShowModal(false)} >
+
+        <ModalContent>
+          {post.picUrl ? <ImageModal {...addPropsToModal()} /> : <NoImageModal {...addPropsToModal()} />}
+        </ModalContent>
+
+
+
+    </Modal>
+  )}
     <Segment>
       <Card color="teal" fluid>
         {post.picUrl && 
@@ -31,7 +55,9 @@ const [error, setError] = useState(null)  //handles any error inliking, commenti
           wrapped 
           ui={false}
           alt="Postimage" 
+          onClick={()=>setShowModal(true)}
         />}
+        
         <Card.Content>
           <Image floated="left" src={post.user.profilePicUrl} avatar circular />
           {(user.role === "root" || post.user._id === user._id) && (
@@ -39,7 +65,7 @@ const [error, setError] = useState(null)  //handles any error inliking, commenti
               <Popup on="click" position="top right" trigger={<Image src="/deleteIcon.svg" style={{cursor:"pointer"}} size = "mini" floated="right" />} >
                 <Header as="h4" content="Are you sure?" />
                 <p>This action is irreversible!</p>
-                <Button color="red" icon="trash" content="Delete" />
+                <Button color="red" icon="trash" content="Delete" onClick={()=>deletePost(post._id, setPosts, setShowToastr)} />
               </Popup>
             </>
           )}
@@ -62,21 +88,26 @@ const [error, setError] = useState(null)  //handles any error inliking, commenti
         </Card.Content>
 
 
-        <CardContent extra >
+        <Card.Content extra >
             <Icon 
               name={isLiked?"heart":"heart outline"} 
               color="red" 
               style={{cursor:"pointer"}} 
+              onClick={()=>likePost(post._id, user._id, setLikes, isLiked?false:true )}
             />
 
-            {likes.length>0 && (
+          <LikesList 
+            postId={post._id}
+            trigger={
+              likes.length>0 && (
               <span className="spanLikesList" >
                 {`${likes.length} ${likes.length === 1 ? "like" : "likes" }`}
               </span>
             )}
+           />
 
             <Icon name="comment outline" style={{marginLeft:"7px"}} color="blue" />
-
+          
             {comments.length>0 && comments.map((comment, index) => (
               index < 3 && (
               <PostComments 
@@ -88,7 +119,14 @@ const [error, setError] = useState(null)  //handles any error inliking, commenti
               />)
               ))}
 
-              {comments.length>3 && <Button content="View More" color="teal" basic circular/>}
+              {comments.length>3 && 
+              <Button 
+              content="View More" 
+              color="teal" 
+              basic 
+              circular 
+              onClick={()=>setShowModal(true)} 
+              />}
               
               <Divider hidden/>
 
@@ -98,7 +136,7 @@ const [error, setError] = useState(null)  //handles any error inliking, commenti
                 setComments={setComments} 
                 />
 
-        </CardContent>
+        </Card.Content>
       </Card>
     </Segment>
     <Divider hidden/>

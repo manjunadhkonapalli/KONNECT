@@ -33,6 +33,8 @@ nextApp.prepare().then(function(){
     app.use("/api/auth", require("./api/auth"));
     app.use("/api/search", require("./api/search"));
     app.use("/api/posts", require("./api/posts"));
+    app.use("/api/profile", require("./api/profile"))
+   //app.use("/api/notifications", require("./api/notifications"))
 
     //app.all --> all the pages in Next.js are SSR(server side rendered).So if we dont write app.all, the files inside the pages folder wont work.
     app.all("*", function (req, res){

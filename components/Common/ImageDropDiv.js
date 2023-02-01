@@ -1,5 +1,6 @@
 import React from 'react'
 import {Form, Segment, Image, Icon, Header} from "semantic-ui-react"
+import {useRouter} from "next/router"
 
 //like destructing our props object
 function ImageDropDiv({
@@ -10,7 +11,12 @@ function ImageDropDiv({
     setHighlighted, 
     inputRef,
     handleChange,
+    profilePicUrl
 }) {
+
+    const router = useRouter()
+    const signupRoute = router.pathname === "/signup"
+
   return (
     <>
         <Form.Field >
@@ -49,6 +55,8 @@ function ImageDropDiv({
                 >
                     {mediaPreview===null ?(<>
                         <Segment {...highlighted && {color:"green"}} placeholder basic >
+                            {/* For showing header on signup page, && showing current profile pi on update page */}
+                            {signupRoute ? 
                             <Header icon>
                                 <Icon 
                                     name="file image outline" 
@@ -57,6 +65,17 @@ function ImageDropDiv({
                                 />
                                 Drag n Drop or Click To Upload Image
                             </Header>
+                            : 
+                            <span style={{textAlign: "center"}}>
+                                <Image 
+                                src={profilePicUrl} 
+                                style={{cursor:"pointer"}}
+                                onClick={()=>inputRef.current.click()}  
+                                size="medium"
+                                centered
+                                />
+                            </span>
+                            }
                         </Segment>
                     </>
                     ):(

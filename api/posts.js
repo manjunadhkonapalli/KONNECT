@@ -6,6 +6,13 @@ const UserModel = require("../models/UserModel")
 const PostModel = require("../models/PostModel")
 const FollowerModel = require("../models/FollowerModel")    //we will use this followermodel when we start build Profile page --> Bcz we re going to show posts of the user that he is following
 const uuid = require("uuid").v4;
+/*const {
+    newLikeNotification,
+    removeLikeNotification,
+    newCommentNotification,
+    removeCommentNotification
+} = require("../utilsServer/notificationActions")
+*/
 
 //CREATE A POST
 router.post("/", authMiddleware, async(req, res)=>{
@@ -25,7 +32,9 @@ router.post("/", authMiddleware, async(req, res)=>{
 
         const post = await new PostModel(newPost).save();
        
-        return res.json(post);
+        const postCreated = await PostModel.findById(post._id) //so thhat we can take them and render onto front end
+        return res.json(post._id);   //since it is populated, its easy to connect to frontend by loking at its structure
+
     } catch (error) {
         console.log(error);
         return res.status(500).send("Server error");
@@ -33,18 +42,147 @@ router.post("/", authMiddleware, async(req, res)=>{
 });
 
 
-//get request to GET ALL POSTS - get re from home page "/"
+//get request to GET ALL POSTS - get req from home page "/"
 router.get("/", authMiddleware, async(req, res)=>{
 
-    try {
-        //first we will check if there is post or not
-        const posts = await PostModel.find()
-        .sort({createdAt:-1})
-        .populate("user")
-        .populate("comments.user")
+    const {pageNumber} = req.query;
+    const number = Number(pageNumber)   //we will recieve it as string --> convert it to number
+    const size = 8;     //every time, a req is made, i want to send 8 posts --> size of posts to send to frontend everytime req is made
+    const {userId} = req    //from middleware
+
+    //LECTURE 51
+    // try {
+    //     let posts;
+
+    //     //chain a limit method to limit the number of elmets to fetch by passing the size varaible
+    //     //this case might occur first time fetching the posts
+    //     if(number === 1){
+    //         posts = await PostModel.find()
+    //         .limit(size)                    //limits the number of searches
+    //         .sort({createdAt:-1})
+    //         .populate("user")
+    //         .populate("comments.user")
+    //     }
+    //     //if pagenumber != 1 --> this case might happen in while scrolling --> just chain skip method
+    //     //we need to skip over the posts, which was sent earlier
+    //     else{
+    //         const skips = size * (number-1)
+    //         posts = await PostModel.find()
+    //         .skip(skips)                    //skips mentioned number of searches
+    //         .limit(size)
+    //         .sort({createdAt:-1})
+    //         .populate("user")
+    //         .populate("comments.user")
+    //     }
+
+    //     //return res.json(posts);
+
+    //     //Implementing only see the posts of users we are following
+    //     const loggedUser = await FollowerModel.findOne({user:userId})
+
+    //     //if no posts, return empty array
+    //     if(posts.length === 0){
+    //         return res.json([])
+    //     }
+    //     //if posts are there,
+    //     let postsToBeSent = []
+
+    //     //if logged user is not following anyone, then filter over the posts array -->postsId = userId (logged user) and get all posts posted by logged user --> req.userId means -> loggeduserId
+    //     if(loggedUser.following.length===0){
+    //         postsToBeSent = posts.filter(post => post.user._id.toString() === userId )
+    //     }
+    //     //if user if following someone --> forevery user in following array, take his userId, match with userId`s in posts array --> gets posts of following people
+    //     //and also match logged userId with posts array too --> gets all self posts of logged user
+    //     else{
+    //         for(let i=0; i<loggedUser.following.length; i++){
+    //            const foundPosts = posts.filter(post => 
+    //             post.user._id.toString() === loggedUser.following[i].user.toString() || 
+    //             post.user._id.toString() === userId );
+
+    //             if(foundPosts.length>0){
+    //                 //we should spreadit. otherwise, it will get stored as array in array
+    //                 //postsToBeSent.push(foundPosts);  //non spread ---> [d, e, [a, b, c]]   
+    //                 postsToBeSent.push(...foundPosts);  //spread operator --> [d, e, a, b, c] -> foundPosts itself is an array -> so spread it out
+    //             }
+    //         }
+    //     }
+
+    //     return res.json(postsToBeSent)
+    // } catch (error) {
+    //     console.log(error);
+    //     return res.status(500).send("Server error");
+    // }
+
+    //LECTURE 52 - Optimized code
+    try {   
+        const loggedUser = await FollowerModel.findOne({user: userId}).select(
+            "-followers"    //we donot need to do anything with the followers data
+        );
+        
+
+        let posts = [];
+        //this case might occur first time fetching the posts
+        if(number === 1)
+        {
+            //if user is following someone -->return all the posts of loggedUser, following users
+            if(loggedUser.following.length>0)
+            {
+                //Basically means find all the posts in PostModel, whose user = userId (loggeduser) self posts &&
+                //also find posts of me following users -> to get this, map through the following array --> get ID`s all the users in following array
+                //the map returns ID`s of the users whom i am following --> spread it in the array, Bcz map returns array of Ids
+                posts = await PostModel.find({
+                    user: {
+                        $in:[userId, ...loggedUser.following.map(following => following.user)]
+                        }
+                    })
+                    .limit(size)
+                    .sort({createdAt: -1})
+                    .populate("user")
+                    .populate("comments.user");    
+            }
+            //if not following anyone -> return all the posts of loggedUser
+            else{
+                posts = await PostModel.find({user: userId})
+                    .limit(size)
+                    .sort({createdAt: -1})
+                    .populate("user")
+                    .populate("comments.user"); 
+            }
+        }
+        //if pagenumber != 1 --> this case might happen in while scrolling --> just chain skip method
+        else{
+            const skips = size * (number-1)
+
+            //if user is following someone -->return all the posts of loggedUser, following users
+            if(loggedUser.following.length>0)
+            {
+                //Basically means find all the posts in PostModel, whose user = userId (loggeduser) self posts &&
+                //also find posts of me following users -> to get this, map through the following array --> get ID`s all the users in following array
+                //the map returns ID`s of the users whom i am following --> spread it in the array, Bcz map returns array of Ids
+                posts = await PostModel.find({
+                    user: {
+                        $in:[userId, ...loggedUser.following.map(following => following.user)]
+                        }
+                    })
+                    .skip(skips)
+                    .limit(size)
+                    .sort({createdAt: -1})
+                    .populate("user")
+                    .populate("comments.user");    
+            }
+            //if not following anyone -> return all the posts of loggedUser
+            else{
+                posts = await PostModel.find({user: userId})
+                    .skip(skips)
+                    .limit(size)
+                    .sort({createdAt: -1})
+                    .populate("user")
+                    .populate("comments.user"); 
+            }
+
+        }
 
         return res.json(posts)
-
     } catch (error) {
         console.log(error);
         return res.status(500).send("Server error");
@@ -152,6 +290,11 @@ router.post("/like/:postId", authMiddleware, async(req, res)=>{
         await post.likes.unshift({user:userId}) //unshift adds an elmt to begginng of the string --> to get recent likes at beggining :)
         await post.save()
 
+        //Sending the notification that post has been liked --> before that check if the loggedin user !== postUser -->bcz if the user likes his own posts, we dont want any notification to ourselves
+        if(post.user.toString()!==userId){
+            await newLikeNotification(userId, postId, post.user.toString())
+        }
+
         return res.status(200).send("Post Liked")
 
     } catch (error) {
@@ -162,7 +305,7 @@ router.post("/like/:postId", authMiddleware, async(req, res)=>{
 
 
 //UNLIKE A POST -- req.params  
-//why we used put here and post above ???
+//why we used put here and post above ??? --> basically post means create, put means update
 router.put("/unlike/:postId", authMiddleware, async(req, res)=>{
 
     try {
@@ -195,6 +338,11 @@ router.put("/unlike/:postId", authMiddleware, async(req, res)=>{
         //await post.likes.shift({user:userId}) //through shift we cant delete the desired elmt -only th first one we can
         await post.likes.splice(index, 1);  //splice adds and / or removes elmts at specified index arrray.slice(index-required,   howManyCount-optional    item1, item2..itemx(optional, new elmts if want to add))
         await post.save();
+
+        //when unliked removing the like notification from notifications array --> before that check if the loggedin user !== postUser -->bcz if the user likes his own posts, we dont want any notification to ourselves
+        if(post.user.toString()!==userId){
+            await removeLikeNotification(userId, postId, post.user.toString())
+        }
 
         return res.status(200).send("Post unliked")
 
@@ -235,6 +383,7 @@ router.post("/comment/:postId", authMiddleware, async(req, res)=>{
         
         const {postId} = req.params;    //wet did set postId feild into req.params in above router.get("/likes:postId") line
         const {text} = req.body;        //This comes from frontend so contains body of the request
+        const {userId} = req;           //from our Middleware
 
         if(text.length < 1){
             return res.status(401).send("Comment should be atleast 1 character");
@@ -251,13 +400,18 @@ router.post("/comment/:postId", authMiddleware, async(req, res)=>{
         const newComment = {
             _id : uuid(),    //Generating unique id with the UUID package.
             text,           //es6 syntax
-            user : req.userId,   //from our Middleware
+            user : userId,   //from our Middleware
             date : Date.now()       //gets curent date of commenting
         }   
 
         //add this comment to commentsArray of the post
         await post.comments.unshift(newComment);    //latest comments to start of the array --> unshift adds elmts to beggining of the array
         await post.save();
+
+        //checking for if we are not commenting on our own post
+        if(post.user.toString() !== userId){
+            await newCommentNotification(postId, newComment._id, userId, post.user.toString(), text)
+        }
 
         //instead of sending any msg -> we will send commentId back to frontend(from backend). so that we can use it to display the comment on viewport 
         //return res.status(200).send("Comment added");
@@ -298,12 +452,18 @@ router.delete("/:postId/:commentId", authMiddleware, async(req, res)=>{
 
 
         async function deleteComment(){
-            //map through the comment array by matching the cmntId and find index of it
-            const indexOf = post.comments.map(comment=>comment._id === commentId).indexOf(commentId);
+            //map through the comments array and get an array of commentId`s --> then applies indexOf()  on that array gets, actual index
+            //if nothing matchs, returns -1
+            //splice(negatives) --> removes elmets from end of the array
+            const indexOf = post.comments.map(comment => comment._id).indexOf(commentId)
             await post.comments.splice(indexOf, 1);
             await post.save();
 
-            res.status(200).send("Comment Deleted Successfully");
+            if(post.user.toString()!==userId){
+                await removeCommentNotification(postId, commentId, userId, post.user.toString());
+            }
+
+            return res.status(200).send("Comment Deleted Successfully");
         }
 
         if(comment.user.toString()!==userId){

@@ -4,6 +4,7 @@ const router = express.Router();    //used to create new Router object in our pr
 const UserModel = require("../models/UserModel"); //require our models
 const ProfileModel = require("../models/ProfileModel");
 const FollowerModel = require("../models/FollowerModel");
+const NotificationModel = require("../models/NotificationModel")
 
 const jwt = require("jsonwebtoken");  //jwt to send back the token - used to securely transfer information over the web(between) two parties.
 const bcrypt = require("bcryptjs");   //to encrypt the passwords 
@@ -104,6 +105,7 @@ router.post("/", async(req, res)=>{
 
     await new ProfileModel(profileFields).save();
     await new FollowerModel({user: user._id, followers: [], following: []}).save()
+    //await new NotificationModel({user:user._id, notifications:[]}).save(); //while signingup we have to create the instances of these models
 
     //if the user successfully registered, we`re gonna send back the token to the client side (probably the user _id to fetch the whole user related data)
     //Something relatede to tokens

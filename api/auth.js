@@ -3,6 +3,7 @@ const router = express.Router();
 
 const UserModel = require("../models/UserModel");
 const FollowerModel = require("../models/FollowerModel");
+const NotificationModel = require("../models/NotificationModel")
 
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -12,8 +13,8 @@ const authMiddleware = require("../middleware/authMiddleware")
 
 
 //get request to send the user details onto homepage initially 
-//we are adding this here but not in api/signup whyy ?? ---> Bcz, in signup, use is newly registering, so he just we need to save the user details then ask hin to login
-//after login (api/auth.js) only thw homepage and initial data on it will appear too
+//we are adding this here but not in api/signup whyy ?? ---> Bcz, in signup, use is newly registering, so he just we need to save the user details then ask him to login
+//after login (api/auth.js) only the homepage and initial data on it will appear too
 router.get("/", authMiddleware, async(req, res)=>{
 
   //console.log(req)
@@ -37,7 +38,7 @@ router.get("/", authMiddleware, async(req, res)=>{
 })
 
 
-
+//Signing in or logging in
 router.post("/", async (req, res) => {
   const { email, password } = req.body.user;
 
@@ -60,6 +61,16 @@ router.post("/", async (req, res) => {
     
     if (!isPassword) {
       return res.status(401).send("Invalid Credentials");
+    }
+
+    //we are adding this bcz, by the time we are creating this notification model, we already have 3 users registered. For them we dont have NotificationModel(NM).
+    //So with this feature --> they will get NM while logging in again :)
+    //First check if it exists
+    const notificationModel = await NotificationModel.findOne({user:user._id})
+
+    //if ntfctn model not exists(not created while signingup), create one now
+    if(!notificationModel){
+      await new NotificationModel({user:user._id, notifications: []}).save();
     }
 
     //if the password is correct, we`re gonna send back the token with this jwt token

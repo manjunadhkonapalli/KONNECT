@@ -5,6 +5,7 @@ import axios from "axios";
 import {parseCookies, destroyCookie} from "nookies"
 import baseUrl from "../utils/baseUrl"
 import {redirectUser} from "../utils/authUser"
+import 'react-toastify/dist/ReactToastify.css';
 
 //
 //The component prop is the active page. whenver we navigate between routes, component will change to the new page
@@ -102,9 +103,13 @@ MyApp.getInitialProps = async({Component, ctx}) =>{   //destructure appContext h
     let pageProps ={};
 
     //ctx pathname is nothing but the route to which user is to be redirected
-    const protectedRoutes = ctx.pathname==="/"
+    const protectedRoutes = 
+        ctx.pathname==="/" || 
+        ctx.pathname === "/[username]" ||
+         ctx.pathname === "/post/[postId]" || 
+         ctx.pathname === "/notifications";
 
-    //if there is no token --> user is not loggedin -> and if user is trying to access protected Routes(homepage) -> then we will redirect the user ti login page
+    //if there is no token --> user is not loggedin -> and if user is trying to access protected Routes(homepage) -> then we will redirect the user to login page
     if(!token){
         protectedRoutes && redirectUser(ctx, "/login")
     }else{
