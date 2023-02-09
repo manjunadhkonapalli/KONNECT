@@ -4,7 +4,7 @@ import Navbar from "./Navbar";
 import { Container, Visibility, Grid, Sticky, Ref, Divider, Segment, GridColumn } from "semantic-ui-react";
 import nProgress from "nprogress";
 //always remember, deafault packages names start with lower case --> not next/Router. its next/router
-import Router from "next/router" 
+import Router, {useRouter} from "next/router" 
 import SideMenu from "./SideMenu";
 import Search from "./Search";
 
@@ -13,6 +13,9 @@ function Layout({children, user}) {     //layouts children is component -- cmpnt
 
   //console.log({children})
   const contextRef = createRef()
+
+  const router = useRouter()
+  const messagesRoute = router.pathname === "/messages"
 
   Router.onRouteChangeStart =()=> nProgress.start()     //on routechange start, start animating the progress bar
   Router.onRouteChangeComplete =  ()=> nProgress.done()     //on routechange end, complete animating the progress bar
@@ -26,7 +29,8 @@ function Layout({children, user}) {     //layouts children is component -- cmpnt
           <div style={{marginLeft:"1rem", marginRight:"1rem"}}>
             <Ref  innerRef={contextRef}>
               <Grid>
-                <GridColumn floated="left" width={2}>
+                {!messagesRoute ? (<> 
+                  <GridColumn floated="left" width={2}>
                   <Sticky context={contextRef} >
                     <SideMenu user={user} />
                   </Sticky>
@@ -46,6 +50,15 @@ function Layout({children, user}) {     //layouts children is component -- cmpnt
                   </Segment>
                 </Sticky>
               </GridColumn>
+                </>
+                ) : ( 
+                <>
+                  <Grid.Column floated="left" width={1} />
+                  <Grid.Column width={15}>
+                    {children}
+                  </Grid.Column>
+
+                </>)}
 
               </Grid>
             </Ref>

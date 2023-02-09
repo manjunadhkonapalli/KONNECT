@@ -106,8 +106,9 @@ MyApp.getInitialProps = async({Component, ctx}) =>{   //destructure appContext h
     const protectedRoutes = 
         ctx.pathname==="/" || 
         ctx.pathname === "/[username]" ||
-         ctx.pathname === "/post/[postId]" || 
-         ctx.pathname === "/notifications";
+        ctx.pathname === "/post/[postId]" || 
+        ctx.pathname === "/notifications" ||
+        ctx.pathname === "/messages" ;
 
     //if there is no token --> user is not loggedin -> and if user is trying to access protected Routes(homepage) -> then we will redirect the user to login page
     if(!token){

@@ -4,6 +4,7 @@ const router = express.Router();
 const UserModel = require("../models/UserModel");
 const FollowerModel = require("../models/FollowerModel");
 const NotificationModel = require("../models/NotificationModel")
+const ChatModel = require("../models/ChatModel")
 
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -71,6 +72,16 @@ router.post("/", async (req, res) => {
     //if ntfctn model not exists(not created while signingup), create one now
     if(!notificationModel){
       await new NotificationModel({user:user._id, notifications: []}).save();
+    }
+
+    //we are adding this bcz, by the time we are creating this Chat model, we already have 3 users registered. For them we dont have ChatModel(CM).
+    //So with this feature --> they will get CM while logging in again :)
+    //First check if it exists
+    const chatModel = await ChatModel.findOne({user:user._id})
+
+    //if chat model not exists(not created while signingup), create one now
+    if(!chatModel){
+      await new ChatModel({user:user._id, chats: []}).save();
     }
 
     //if the password is correct, we`re gonna send back the token with this jwt token

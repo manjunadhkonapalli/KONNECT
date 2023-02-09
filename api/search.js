@@ -11,6 +11,7 @@ router.get("/:searchText",authMiddleware, async(req, res)=>{
     //req.body = Generally used in POST/PUT requests --> Use it when we want to send sensitive data(eg. form data) to the server.
     //req.params = These are properties attached to the url i.e named route parameters -> /:username => localhost:3000/manjunadh554
     const {searchText} = req.params
+    const {userId} = req
 
     if(searchText.length===0)return;
 
@@ -22,7 +23,10 @@ router.get("/:searchText",authMiddleware, async(req, res)=>{
             name:{$regex:searchText, $options:"i"}     //DOUBT : means that this will not be case sensitive
         });
 
-        res.json(results);
+        //filtering the results so that we dont get our own profile/chat --> like manju searching manju in his linkeid Search page
+        const resultsToBeSent = results.length>0 && results.filter(result=>result._id.toString() !== userId)
+
+        return res.status(200).json(resultsToBeSent);
 
     } catch (error) {
         console.log(error);

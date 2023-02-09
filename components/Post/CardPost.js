@@ -45,7 +45,7 @@ function addPropsToModal(){
 
     </Modal>
   )}
-    <Segment>
+    <Segment basic>
       <Card color="teal" fluid>
         {post.picUrl && 
         <Image 
@@ -60,6 +60,7 @@ function addPropsToModal(){
         
         <Card.Content>
           <Image floated="left" src={post.user.profilePicUrl} avatar circular />
+          
           {(user.role === "root" || post.user._id === user._id) && (
             <>
               <Popup on="click" position="top right" trigger={<Image src="/deleteIcon.svg" style={{cursor:"pointer"}} size = "mini" floated="right" />} >

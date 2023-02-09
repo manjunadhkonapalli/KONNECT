@@ -9,7 +9,7 @@ const FollowerModel = require("../models/FollowerModel")
 const { remove } = require("../models/PostModel")
 const bcrypt = require("bcryptjs")
 
-//const {newFollowerNotification, removeFollowerNotification} = require("../utilsServer/notificationActions")
+const {newFollowerNotification, removeFollowerNotification} = require("../utilsServer/notificationActions")
 
 //GET PROFILE INFO
 router.get("/:username", authMiddleware, async(req, res)=>{
@@ -51,7 +51,6 @@ router.get("/:username", authMiddleware, async(req, res)=>{
 })
 
 //GET ALL POSTS OF USER in profile page
-
 router.get('/posts/:username', authMiddleware, async(req, res)=>{
 
     const {username} = req.params;
@@ -154,7 +153,7 @@ router.post("/follow/:userToFollowId", authMiddleware, async(req, res)=>{
         await userToFollow.save();
 
         //for following notification to follwed user
-        //await newFollowerNotification(userId, userToFollowId);
+        await newFollowerNotification(userId, userToFollowId);
 
         return res.status(200).send("Following Successful")
 
@@ -205,7 +204,7 @@ router.put("/unfollow/:userToUnfollowId", authMiddleware, async(req, res)=>{
         await userToUnfollow.save();
         
         //if unfollowed, Remove follow notification from notifications array
-        //await removeFollowerNotification(userId, userToUnfollowId)
+        await removeFollowerNotification(userId, userToUnfollowId)
 
         return res.status(200).send("Unfollowed Successfully")
         

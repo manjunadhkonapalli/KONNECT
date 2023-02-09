@@ -6,13 +6,13 @@ const UserModel = require("../models/UserModel")
 const PostModel = require("../models/PostModel")
 const FollowerModel = require("../models/FollowerModel")    //we will use this followermodel when we start build Profile page --> Bcz we re going to show posts of the user that he is following
 const uuid = require("uuid").v4;
-/*const {
+const {
     newLikeNotification,
     removeLikeNotification,
     newCommentNotification,
     removeCommentNotification
 } = require("../utilsServer/notificationActions")
-*/
+
 
 //CREATE A POST
 router.post("/", authMiddleware, async(req, res)=>{
@@ -204,7 +204,9 @@ router.get("/:postId", authMiddleware, async(req, res)=>{
         //const postId = ObjectIdfromString(req.params.postId)
  
         //first we will check if there is post or not
-        const post = await PostModel.findById(req.params.postId) 
+        const post = await PostModel.findById(req.params.postId)
+            .populate("user")
+            .populate("comments.user")
 
         if(!post){
             return res.status(404).send("Post Not Found");
