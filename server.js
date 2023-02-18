@@ -16,8 +16,8 @@ const connectDb = require("./utilsServer/connectDb")
 const PORT = process.env.PORT || 3000;  //when app is deployed to heroku, it automatically provides teh port inside the environment variables.
 app.use(express.json());    //add bodyparser
 connectDb() //calling our connectDb func which is stores as a separate file
-const {addUser, removeUser} = require("./utilsServer/roomActions")
-const {loadMessages, sendMsg}  = require("./utilsServer/messageActions")
+const {addUser, removeUser,findConnectedUser} = require("./utilsServer/roomActions")
+const {loadMessages, sendMsg, setMsgtoUnread, deleteMsg}  = require("./utilsServer/messageActions")
 
 
 //'connection' is a default event from socket.io - we should not use it ourself
@@ -50,6 +50,10 @@ io.on("connection", socket => {
         if(!error){
             socket.emit("messagesLoaded", {chat})
         }
+        //If not chat found with that user --> show empty chat area
+        else{
+            socket.emit("noChatFound")
+        }
     })
 
     //SEND messages from chatbox
@@ -58,15 +62,35 @@ io.on("connection", socket => {
         //call the function or make req to backend to store the msgs in DATABASE
         const {newMsg, error} = await sendMsg(userId, msgSendToUserId, msg)
 
+        //Find if receiver is online or not, by checking in users array in roomActions
+        const receiverSocket = findConnectedUser(msgSendToUserId)
+
+        //If user exists in users array --> is online --> gte socketId of receiver to send him msg 
+        if(receiverSocket){
+            io.to(receiverSocket.socketId).emit("newMsgReceived", {newMsg}) //WHEN WE WANT TO SEDN MSG TO A PARTICULAR SOCKET
+        }
+        //If receiver socket is not there --> user is offine --> set his unreadMessage field to true
+        else{
+            await setMsgtoUnread(msgSendToUserId);
+        }
+
         if(!error){
             socket.emit("msgSent", {newMsg})    //confirmation that msg is sent & send back the newMsg
         }
-        else{
-            socket.emit("noChatFound")
-        }
     })
 
-    //socket.disconnect()
+    //to delete Msg
+    socket.on("deleteMsg", async({userId, messagesWith, messageId})=>{
+
+       const {success} = await deleteMsg(userId, messagesWith, messageId)
+       
+       if(success){
+        socket.emit("msgDeleted");
+       }
+
+    });
+
+    //socket.disconnect().on()
     socket.on("disconnect",()=>{
         removeUser(socket.id)
         console.log("User disconnected")

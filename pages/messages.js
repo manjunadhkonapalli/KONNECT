@@ -12,6 +12,12 @@ import Banner from "../components/Messages/Banner"
 import Message from "../components/Messages/Message"
 import MessageInputField from "../components/Messages/MessageInputField"
 import getUserInfo from "../utils/getUserInfo"
+import newMsgSound from "../utils/newMsgSound"
+
+async function scrollDivToBottom(divRef){
+  divRef.current !== null && divRef.current.scrollIntoView({behaviour : "smooth"});
+};
+
 
 function Messages({chatsData, user}) {
 
@@ -22,6 +28,9 @@ function Messages({chatsData, user}) {
     const [messages, setMessages] = useState([])
     const [bannerData, setBannerData] = useState({name:"", profilePicUrl:""});
    
+    //This divref for pointing to that latest msg either sent or recived --> scrolls an elmt to the visible area of browsers window
+    const divRef = useRef();
+
     // This ref is for persisting the state of query string in url throughout re-renders. This ref is the query string inside the url
     const openChatId = useRef("")
 
@@ -85,6 +94,7 @@ function Messages({chatsData, user}) {
           setBannerData({name:chat.messagesWith.name, profilePicUrl:chat.messagesWith.profilePicUrl})
 
           openChatId.current = chat.messagesWith._id  //query string = user id with whom we are chatting
+          divRef.current && scrollDivToBottom(divRef);    //This is to implement autoscrollto bottom in msgs div, after they are loaded from another page to msgs/chats page
         })
 
         //if noChat is found with an user, redirect to its chat area from previous ones chat area when clicked
@@ -117,7 +127,6 @@ function Messages({chatsData, user}) {
       }
 
     }
-
     
     //Confirming that a msg is sent & receiving the msges
     useEffect(()=>{
@@ -137,13 +146,90 @@ function Messages({chatsData, user}) {
               previousChat.date=newMsg.date
 
               return [...prev];
-            })
+            });
+          }
+        });
+
+        // Here think that we are the receiver
+        socket.current.on("newMsgReceived", async({newMsg})=>{
+
+          let senderName;
+
+          // If the chat of sender who send us msg is opened inside the browser
+          if(newMsg.sender === openChatId.current){
+
+            setMessages(prev => [...prev, newMsg])
+            // The chat with the sender is opened in our browser
+            // Find the prev chats and attacch the newMessage into that chat
+            setChats(prev => {
+              const previousChat = prev.find(chat => chat.messagesWith===newMsg.sender)
+              previousChat.lastMessage = newMsg.msg;
+              previousChat.date = newMsg.date;
+              senderName = previousChat.name
+
+              return [...prev];
+            });
+          }
+          //If another users chat is opened
+          else{
+            //If chat is not opened inside the browser, we check if we had chat previously with this user
+            const ifPreviouslyMessages = chats.filter(chat => chat.messagesWith === newMsg.sender).length > 0
+
+            if(ifPreviouslyMessages){
+              setChats(prev => {
+                //Find the prev chat just and attach the newMessage into that chat like above we did 
+                const previousChat = prev.find(chat => chat.messagesWith === newMsg.sender);
+                previousChat.lastMessage = newMsg.msg;
+                previousChat.date = newMsg.date;
+                senderName = previousChat.name
+
+                return [...prev];
+              })
+            }
+            // No prev Chat with that user/sender --> create a chat now in chats --> just like chta, status, call in whatsapp
+            else{
+              const {name, profilePicUrl} = await getUserInfo(newMsg.sender);
+              senderName = name
+
+              const newChat = {
+                messagesWith : newMsg.sender,
+                name,
+                profilePicUrl,
+                lastMessage: newMsg.msg,
+                date: newMsg.date
+              };
+              setChats(prev => [newChat, ...prev]); //newchat to the top --> just like whatsapp
+            }
           }
 
+          newMsgSound(senderName);    // This msg is called on this event newMsgRecieved
+        });
+      }
+    }, [])
+
+
+    //When the messages changes, this useEffect take part and autoScrollsToBottom
+    useEffect(()=>{
+      //when the state of the messages changes
+      messages.length > 0 && scrollDivToBottom(divRef)
+
+    }, [messages]);
+
+
+    //This is to delete a msg --> just like dltForMe in whats app
+    const deleteMsg = (messageId)=>{
+
+      if(socket.current){
+        socket.current.emit("deleteMsg", {userId: user._id, messagesWith: openChatId.current. messageId});
+
+        //After deleting the Msg, also  make changes on the front end too By getting hold of prev values 
+        socket.current.on("msgDeleted", ()=>{
+          setMessages(prev => prev.filter(message => message._id !== messageId));
         })
+
       }
 
-    }, [])
+    }
 
   return (
     <>
@@ -193,12 +279,12 @@ function Messages({chatsData, user}) {
                             <>
                             {messages.map((message,i) => 
                               <Message 
+                                divRef={divRef}
                                 key={i} 
                                 bannerProfilePic={bannerData.profilePicUrl}
                                 message={message} 
                                 user={user} 
-                                setMessages={setMessages}
-                                messagesWith={openChatId.current} 
+                                deleteMsg={deleteMsg} 
                               />
                               )}
 
