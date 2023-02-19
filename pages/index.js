@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
+import io from "socket.io-client"
 import axios from "axios"
 import baseUrl from "../utils/baseUrl"
 import CreatePost from "../components/Post/CreatePost"
@@ -10,6 +11,9 @@ import {PostDeleteToastr} from "../components/Layout/Toastr"
 import InfiniteScroll from 'react-infinite-scroll-component'
 import {PlaceHolderPosts, EndMessage} from "../components/Layout/PlaceHolderGroup"
 import cookie from 'js-cookie'
+import getUserInfo from '../utils/getUserInfo'
+import MessageNotificationModal from '../components/Home/MessageNotificationModal'
+import newMsgSound from "../utils/newMsgSound"
 
 function Index({user, postsData, errorLoading}) {
 
@@ -18,9 +22,52 @@ function Index({user, postsData, errorLoading}) {
   const [hasMore, setHasMore] = useState(true);  //related to infinte scroll --> hasMore basically means that, if there is more data to fetch from the backend ?
   const [pageNumber, setPageNumber] = useState(2);
 
+  //Below 3 state are for receiving messages in any page
+  const socket = useRef()
+  const [newMessageReceived, setNewMessageReceived] = useState(null)
+  const [newMessageModal, showNewMessageModal] = useState(false)
+
   //useEfect is on mount ---> putting elements into DOM
   useEffect(()=>{
+
+    //If useref is initiated then we will have some value in current. IF NOT --> Connect to the server
+    if(!socket.current){
+      socket.current = io(baseUrl)
+    }
+
+    if(socket.current){
+      //We will emit the event JOIN so that we can keep the track of users who are online
+      //This part of code in in Home page file --> so if user is on homepoge --> it will be considered as online
+      socket.current.emit('join', {userId: user._id});
+
+      socket.current.on('newMsgReceived', async({newMsg})=>{
+
+        //Call GET USER INFO function
+        const {name, profilePicUrl} = await getUserInfo(newMsg.sender)
+
+        if(user.newMessagePopup){
+          setNewMessageReceived({
+            ...newMsg,
+            senderName: name,
+            senderProfilePic: profilePicUrl
+          });
+          showNewMessageModal(true);
+        }
+        newMsgSound(name);
+      });
+    }
+
     document.title = `Welcome, ${user.name.split(' ')[0]}`;   //$ is the jQuery function
+
+    //Cleanup function
+    // return ()=>{
+    //   if(socket.current){
+    //     socket.current.emit('disconnect');
+    //     socket.current.off();
+    //   }
+    // }
+
+
   }, [])    //empty array means -> runs on only first render
 
 
@@ -62,6 +109,16 @@ function Index({user, postsData, errorLoading}) {
   return (
     <>
     {showToastr && <PostDeleteToastr />}
+
+    {newMessageModal && newMessageReceived !== null && 
+      <MessageNotificationModal 
+        socket={socket} 
+        showNewMessageModal={showNewMessageModal} 
+        newMessageModal={newMessageModal} 
+        newMessageReceived={newMessageReceived}
+        user={user}
+      />}
+
       <Segment>
         <CreatePost user={user} setPosts={setPosts} />
         {posts.length === 0 || errorLoading ? <NoPosts /> :

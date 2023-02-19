@@ -34,7 +34,7 @@ io.on("connection", socket => {
     socket.on("join", async ({userId})=>{
         const users = await addUser(userId, socket.id);
 
-        console.log(users);
+        //console.log(users);
 
         //after 10 sec send back data to client - refreshing the users so that we maintain the lastest data
         setInterval(()=>{
@@ -83,18 +83,47 @@ io.on("connection", socket => {
     socket.on("deleteMsg", async({userId, messagesWith, messageId})=>{
 
        const {success} = await deleteMsg(userId, messagesWith, messageId)
-       
        if(success){
         socket.emit("msgDeleted");
        }
 
     });
 
-    //socket.disconnect().on()
-    socket.on("disconnect",()=>{
-        removeUser(socket.id)
-        console.log("User disconnected")
+    //Send MSG through MODAL
+    socket.on("sendMsgFromNotification", async({userId, msgSendToUserId, msg})=>{
+
+//CONTENT copied from above "sendNewMsg" event listener
+//To differentiate if any error occured from sending msg either from chat area or from MsgModal we created 2 different event listeners
+//The socket.emit in if(!error) case differentiates both type of sending messages
+
+        //call the function or make req to backend to store the msgs in DATABASE
+        const {newMsg, error} = await sendMsg(userId, msgSendToUserId, msg)
+
+        //Find if receiver is online or not, by checking in users array in roomActions
+        const receiverSocket = findConnectedUser(msgSendToUserId)
+
+        //If user exists in users array --> is online --> gte socketId of receiver to send him msg 
+        if(receiverSocket){
+            io.to(receiverSocket.socketId).emit("newMsgReceived", {newMsg}) //WHEN WE WANT TO SEDN MSG TO A PARTICULAR SOCKET
+        }
+        //If receiver socket is not there --> user is offine --> set his unreadMessage field to true
+        else{
+            await setMsgtoUnread(msgSendToUserId);
+        }
+
+        //This is just a confirmation that msg has been sent
+        if(!error){
+            socket.emit("msgSentFromNotification")
+        }
+
     })
+
+//----BAD, will throw an error-----
+    // //socket.disconnect().on()
+    // socket.on("disconnect",()=>{
+    //     removeUser(socket.id)
+    //     console.log("User disconnected")
+    // })
     
 
 })
@@ -109,7 +138,8 @@ nextApp.prepare().then(function(){
     app.use("/api/posts", require("./api/posts"));
     app.use("/api/profile", require("./api/profile"))
     app.use("/api/notifications", require("./api/notifications"))
-    app.use("/api/chats", require("./api/chats"))
+    app.use("/api/chats", require("./api/chats"));
+    app.use("/api/reset", require("./api/reset"))
 
     //app.all --> all the pages in Next.js are SSR(server side rendered).So if we dont write app.all, the files inside the pages folder wont work.
     app.all("*", function (req, res){

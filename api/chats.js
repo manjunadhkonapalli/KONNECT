@@ -55,7 +55,38 @@ router.get(`/user/:userToFindId`, authMiddleware, async(req, res)=>{
         return res.status(500).send("Server Error")
     }
 
-})
+});
+
+//DELETE CHAT
+router.delete(`/:messagesWith`, authMiddleware, async(req, res)=>{
+    try {
+        //Destructure out from middleware, params
+        const {userId} = req;
+        const {messagesWith} = req.params
+
+        //Find the user
+        const user = await ChatModel.findOne({user: userId})
+        
+        const chatToDelete = user.chats.find(chat => chat.messagesWith.toString() === messagesWith)
+
+        //If there was no chat before
+        if(!chatToDelete){
+            return res.status(404).send('Chat not found')
+        }
+
+        //If chat is there --> find its index
+        const indexOf = user.chats.map(chat => chat.messagesWith.toString()).indexOf(messagesWith)
+
+        user.chats.splice(indexOf, 1);
+        await user.save();
+
+        return res.status(200).send('Chat deleted');
+        
+    } catch (error) {
+        console.error(error)
+        return res.status(500).send("Server Error")
+    }
+});
 
 
 module.exports = router

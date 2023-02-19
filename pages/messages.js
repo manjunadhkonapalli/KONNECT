@@ -13,6 +13,7 @@ import Message from "../components/Messages/Message"
 import MessageInputField from "../components/Messages/MessageInputField"
 import getUserInfo from "../utils/getUserInfo"
 import newMsgSound from "../utils/newMsgSound"
+import cookie from "js-cookie"
 
 async function scrollDivToBottom(divRef){
   divRef.current !== null && divRef.current.scrollIntoView({behaviour : "smooth"});
@@ -47,12 +48,14 @@ function Messages({chatsData, user}) {
 
       //send data using socket - we use "emit"
       if(socket.current){
-        //socket.emit(event_name, object) 
+        /*socket.emit(event_name, object) 
         // socket.current.emit("helloWorld", {name:"Manjunadh", age:"21"})   //we can create and fire custom events using this function
         // socket.current.on("dataReceived", ({msg})=>{
         //   console.log(msg)
         // })
-        //
+        */
+        
+        //We will emit the event JOIN so that we can keep the track of users who are online
         socket.current.emit("join", {userId: user._id})   //emit or send the data - FIRST OF ALL we are emmiting on the mount when the component mounts
 
         socket.current.on("connectedUsers", ({users})=>{  //listen for the data and receive it
@@ -68,13 +71,14 @@ function Messages({chatsData, user}) {
         })
       }
 
-      return ()=>{
-        if(socket.current){
-          //remove the user from the server 
-          socket.current.emit("disconnect")
-          socket.current.off()  //this will remove this event listener
-        }
-      }
+      // //CLEANUP FUNCTION
+      // return ()=>{
+      //   if(socket.current){
+      //     //remove the user from the server 
+      //     socket.current.emit("disconnect")
+      //     socket.current.off()  //this will remove this event listener
+      //   }
+      // }
 
     }, [])  //on mount -> when component mounts it will redierct us to the first chat
 
@@ -89,7 +93,6 @@ function Messages({chatsData, user}) {
         });
 
         socket.current.on("messagesLoaded", ({chat})=>{
-          //console.log(chat)
           setMessages(chat.messages)
           setBannerData({name:chat.messagesWith.name, profilePicUrl:chat.messagesWith.profilePicUrl})
 
@@ -220,7 +223,7 @@ function Messages({chatsData, user}) {
     const deleteMsg = (messageId)=>{
 
       if(socket.current){
-        socket.current.emit("deleteMsg", {userId: user._id, messagesWith: openChatId.current. messageId});
+        socket.current.emit("deleteMsg", {userId: user._id, messagesWith: openChatId.current, messageId});
 
         //After deleting the Msg, also  make changes on the front end too By getting hold of prev values 
         socket.current.on("msgDeleted", ()=>{
@@ -229,6 +232,23 @@ function Messages({chatsData, user}) {
 
       }
 
+    };
+
+    //Delete chat
+    const deleteChat = async (messagesWith)=>{
+
+      try {
+        await axios.delete(`${baseUrl}/api/chats/${messagesWith}`, {headers:{Authorization:cookie.get('token')}});
+        
+        //After successfully deleting in the backend, Now reflect those changes in the frontend too by getting hold of prev obj
+        setChats(prev => prev.filter(chat => chat.messagesWith !== messagesWith))
+
+        //Push the user to the messages route
+        router.push("/messages", undefined, {shallow: true});
+
+      } catch (error) {
+        alert("Error deleting chat")
+      }
     }
 
   return (
@@ -254,6 +274,7 @@ function Messages({chatsData, user}) {
                         chat={chat}
                         setchats={setChats}
                         connectedUsers={connectedUsers}
+                        deleteChat={deleteChat}
                         />
                     ))}
                 </Segment>
