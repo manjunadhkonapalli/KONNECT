@@ -25,9 +25,9 @@ const UserSchema = new Schema({
 
     role : {type:String, default:"user", enum:["user", "root"]},    //enum basically tells that there are only 2 values for this field, (only inside values, not any other values than that)
 
-    resetToken :{Type:String},  //token that we send to user to reset their password
+    resetToken :{type:String},  //token that we send to user to reset their password
 
-    expireToken :{Type:Date},   //we check an expiration time (1hr) for this token
+    expireToken :{type:Date},   //we check an expiration time (1hr) for this token
 
 }, {timestamps: true}       //on the second argument of the schema, set timestamps to true so that we can know when the user was created
 );

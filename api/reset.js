@@ -2,8 +2,13 @@ const express = require("express");
 const router = express.Router()
 const UserModel = require("../models/UserModel")
 const bcrypt = require("bcryptjs")
-const nodemailer = require("nodemailer");   //package used to send email from Node.js applications
-const sendGridTransport = require("nodemailer-sendgrid-transport");
+
+//const nodemailer = require("nodemailer");   //package used to send email from Node.js applications
+//const sendGridTransport = require("nodemailer-sendgrid-transport");
+//This is instead of above two
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.sendGrid_api);
+
 const crypto = require("crypto")    //We need it to generate the token
 const isEmail = require("validator/lib/isEmail")    //To check if email is valid
 const baseUrl  = require("../utils/baseUrl")
@@ -15,7 +20,7 @@ const options = {
 }
 
 //Initialize it
-const transporter = nodemailer.createTransport(sendGridTransport(options));
+//const transporter = nodemailer.createTransport(sendGridTransport(options));
 
 
 //CHECK USER EXISTS and SEND EMAIl FOR RESET PASSWORD
@@ -42,9 +47,7 @@ router.post("/", async(req, res)=>{
         //The token will be valid till 1hr from when it is generates
         user.expireToken = Date.now() + 3600000;     //1hr -> Its in milliseconds
 
-        console.log("5 ErrorHERE")
         await user.save();
-        console.log("6 ErrorHere")
 
         const href = `${baseUrl}/reset/${token}`;
 
@@ -59,13 +62,23 @@ router.post("/", async(req, res)=>{
                 <p>This token is valid only for 1 hour.</p>`
         };
 
-        transporter.sendMail(mailOptions, (err, info)=>err && console.log(err));
+        //transporter.sendMail(mailOptions, (err, info)=>err && console.log(err));
+
+        sgMail.send(mailOptions, false, (err, result) => {
+            if (err) {
+            console.log(err)
+            return res.status(500).send("server error")
+            };
+          res.status(200).send("Email sent successfully");
+      
+        });
 
         return res.status(200).send("Email sent successfully")
 
+
     } catch (error) {
         console.error(error)
-        return res.status(500).send('Server Error22')
+        return res.status(500).send('Server Error')
     }
 });
 
