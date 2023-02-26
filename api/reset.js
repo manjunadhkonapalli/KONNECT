@@ -69,7 +69,7 @@ router.post("/", async(req, res)=>{
             console.log(err)
             return res.status(500).send("server error")
             };
-           return res.status(200).send("Email sent successfully");
+            return res.status(200).send("Email sent successfully");
       
         });
 

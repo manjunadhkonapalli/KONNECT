@@ -6,11 +6,13 @@ async function addUser(userId, socketId){
     //first we will check if we have a user already connected with the userId
     const user = users.find(user => user.userId === userId)
 
+    //If there is already a user with the userId, & socketId return users
     if(user && user.socketId === socketId){
         return users;
     }
     else{
-        if(user && user.socketId !== socketId){ 
+        //This case is  when the same user A on same device refreshes the browser, then new socket connection is made with userId, but with different socket Id, then it removes/deletes the previous entry of this user, by comparing the socketId`s to avoid duplicates in the array
+        if(user && user.socketId !== socketId){     
             //if socketId doesn`t match remove this user completely from users array
             await removeUser(user.socketId)
         }

@@ -14,6 +14,7 @@ import cookie from 'js-cookie'
 import getUserInfo from '../utils/getUserInfo'
 import MessageNotificationModal from '../components/Home/MessageNotificationModal'
 import newMsgSound from "../utils/newMsgSound"
+import NotificationPortal from '../components/Home/NotificationPortal'
 
 function Index({user, postsData, errorLoading}) {
 
@@ -27,14 +28,20 @@ function Index({user, postsData, errorLoading}) {
   const [newMessageReceived, setNewMessageReceived] = useState(null)
   const [newMessageModal, showNewMessageModal] = useState(false)
 
+
+  const [newNotification, setNewNotification] = useState(null)
+  const [notificationPopup, showNotificationPopup] = useState(false)   //control the visibility of the popup with this state
+
+
   //useEfect is on mount ---> putting elements into DOM
   useEffect(()=>{
 
-    //If useref is initiated then we will have some value in current. IF NOT --> Connect to the server
+    //If useref is initiated then we will have some value in current. IF NOT --> Connecting to the server
     if(!socket.current){
       socket.current = io(baseUrl)
     }
 
+    //In emit func, we are sending params in object format. So we will catch then in object format only in socket.on func
     if(socket.current){
       //We will emit the event JOIN so that we can keep the track of users who are online
       //This part of code in in Home page file --> so if user is on homepoge --> it will be considered as online
@@ -77,13 +84,6 @@ function Index({user, postsData, errorLoading}) {
   }, [showToastr])
 
 
-  //small bug fix
-  //if posts length is 0 or there is error Loading then return NoPost component
-  //NoPost is just a custom component, that shows -> no posts are available right now --> Make sure to follow someone:)
-  // if(posts.length === 0 || errorLoading){
-  //   return <NoPosts />
-  // }
-
   async function fetchDataOnScroll(){
 
     try {
@@ -105,9 +105,28 @@ function Index({user, postsData, errorLoading}) {
     
   }
 
+  useEffect(()=>{
+
+    if(socket.current){
+      socket.current.on("newNotificationReceived", ({name, profilePicUrl, username, postId})=>{
+
+        setNewNotification({name, profilePicUrl, username, postId})
+
+        showNotificationPopup(true);
+      })
+    }
+
+  }, [])
 
   return (
     <>
+    {notificationPopup && newNotification !== null && 
+    <NotificationPortal 
+      newNotification={newNotification}
+      notificationPopup={notificationPopup}
+      showNotificationPopup={showNotificationPopup}
+    />}
+
     {showToastr && <PostDeleteToastr />}
 
     {newMessageModal && newMessageReceived !== null && 
@@ -132,6 +151,7 @@ function Index({user, postsData, errorLoading}) {
           {posts.map(post=>
           <CardPost 
           key={post._id} 
+          socket={socket}
           post={post} 
           user={user} 
           setPosts={setPosts}

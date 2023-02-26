@@ -55,6 +55,7 @@ function Messages({chatsData, user}) {
         // })
         */
         
+        //In emit func, we are sending params in object format. So we will catch then in object format only in socket.on func
         //We will emit the event JOIN so that we can keep the track of users who are online
         socket.current.emit("join", {userId: user._id})   //emit or send the data - FIRST OF ALL we are emmiting on the mount when the component mounts
 

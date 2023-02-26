@@ -18,19 +18,20 @@ app.use(express.json());    //add bodyparser
 connectDb() //calling our connectDb func which is stores as a separate file
 const {addUser, removeUser,findConnectedUser} = require("./utilsServer/roomActions")
 const {loadMessages, sendMsg, setMsgtoUnread, deleteMsg}  = require("./utilsServer/messageActions")
-
+const {likeOrUnlikePost} = require("./utilsServer/likeOrUnlikePost")
 
 //'connection' is a default event from socket.io - we should not use it ourself
 //socket - client who is connected
 //inside this func we will have all the events  -  we will receive the data here inside
 //method(event_name, callback) -  eventname can be anything that should match at both client & server side
 io.on("connection", socket => {
-    // socket.on('helloWorld', ({name, age})=>{
-    //     console.log({name, age});
+    /* socket.on('helloWorld', ({name, age})=>{
+         console.log({name, age});
 
-    //     socket.emit("dataReceived", {msg: `Hello ${name}, data received`});
-    // });
+         socket.emit("dataReceived", {msg: `Hello ${name}, data received`});
+     }); */
 
+    //Here in async func, we are catching userIdin object form Bcz, in emit func, we are sending them in object format only
     socket.on("join", async ({userId})=>{
         const users = await addUser(userId, socket.id);
 
@@ -42,6 +43,37 @@ io.on("connection", socket => {
             socket.emit("connectedUsers", {users:users.filter(user => user.userId !== userId)})
         }, 10000)   
     });
+
+    //Socket request to like the post
+    socket.on("likePost", async({postId, userId, like})=>{
+        const{
+            success,
+            name,
+            profilePicUrl,
+            username,
+            postByUserId,
+            error
+        } = await likeOrUnlikePost(postId, userId, like);
+
+        if(success){
+            socket.emit("postLiked");
+
+            //If we have liked our own post, we are not going to send a notification to ourselves
+            if(postByUserId !== userId){
+                //First we will check if the user whom we want to emit notification, is online ?? --> the server will check if we are online then only we will get realtime notification
+                const receiverSocket = findConnectedUser(postByUserId)
+            
+                //If there is user online, and need to like -->only emit notification when we like the post, no notification for unlike
+                if(receiverSocket && like){
+                    //Emit an event to 1 particular user(reciverSocket)
+                    io.to(receiverSocket.socketId).emit("newNotificationReceived", {name, profilePicUrl, username, postId})
+                
+                }
+
+            }
+        }
+    });
+
 
     socket.on('loadMessages', async({userId, messagesWith})=>{
         const {chat, error} = await loadMessages(userId, messagesWith)

@@ -9,7 +9,7 @@ import LikesList from './LikesList'
 import ImageModal from "./ImageModal"
 import NoImageModal from './NoImageModal'
 
-function CardPost({post, user, setPosts, setShowToastr}) {
+function CardPost({post, user, setPosts, setShowToastr, socket}) {
 
 const [likes, setLikes] = useState(post.likes);
 
@@ -94,7 +94,28 @@ function addPropsToModal(){
               name={isLiked?"heart":"heart outline"} 
               color="red" 
               style={{cursor:"pointer"}} 
-              onClick={()=>likePost(post._id, user._id, setLikes, isLiked?false:true )}
+              onClick={()=>{
+
+                //If socket is not there --> we will static notification will work (ELSE block)
+                if(socket.current){
+                  //Emit an event to like the post 
+                  socket.current.emit("likePost", {postId:post._id, userId: user._id, like:isLiked? false : true});
+
+                  socket.current.on("postLiked", ()=>{
+                    //Post was liked before so removing the like on frontend
+                    if(isLiked){
+                      setLikes(prev => prev.filter(like => like.user !== user._id))
+                    }
+                    //Post wasnt like before. so now add the like -->reflect changes on front end
+                    else{
+                      setLikes(prev => [...prev, {user: user._id}])
+                    }
+                  })
+
+                }else{
+                  likePost(post._id, user._id, setLikes, isLiked?false:true )
+                }
+                }}
             />
 
           <LikesList 
