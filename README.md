@@ -1,1 +1,1 @@
-# Social-Media
+# Mini-Social-Media
