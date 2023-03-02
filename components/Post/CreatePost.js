@@ -2,6 +2,7 @@ import React, {useState, useRef} from 'react'
 import {Form, Button, Image, Divider, Message, Icon} from "semantic-ui-react"
 import uploadPic from "../../utils/uploadPicToCloudinary"
 import {submitNewPost} from "../../utils/postActions"
+import CropImageModal from "./CropImageModal"
 
 function CreatePost({user, setPosts}) { //user is the state of the user who logged in
 
@@ -13,6 +14,10 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
   const [highlighted, setHighlighted] = useState(false)   //for uploading the image, we put div here
   const [media, setMedia] = useState(null)
   const [mediaPreview, setMediaPreview] = useState(null)
+
+  //For croppping the img
+  const [showModal, setShowModal] = useState(false)   //To toggle the visibility of the model
+
 
   function handleChange(e){
     const {name, value, files} = e.target
@@ -45,6 +50,7 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
 
     //after uplading the inputs to DB -> kind of refreshing the varaibles :)
     setMedia(null);
+    URL.revokeObjectURL(mediaPreview)   //Free up the space created by URL.createObjectURL()
     setMediaPreview(null)
     setLoading(false)
 
@@ -64,6 +70,9 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
 
   return (
     <>
+
+      {showModal && <CropImageModal mediaPreview={mediaPreview} setMediaPreview={setMediaPreview} setMedia={setMedia} showModal={showModal} setShowModal={setShowModal} />}
+
       <Form error={error!==null} onSubmit={handleSubmit} >
         <Message error onDismiss={()=>setError(null)} content={error} header="Oops!" />
         
@@ -134,6 +143,20 @@ function CreatePost({user, setPosts}) { //user is the state of the user who logg
             </>)}
 
         </div>
+
+          {mediaPreview !== null && <>
+            <Divider hidden />
+
+            <Button 
+              content="Crop Image"
+              type="button"
+              primary
+              circular
+              onClick={()=> setShowModal(true)}
+               />
+          </> 
+          }
+
         <Divider hidden />
 
         <Button circular disabled={newPost.text==="" || loading} content={<strong>Post</strong>} style={{backgroundColor:"#1DA1F2", color:"white"}} icon="send" loading={loading} />

@@ -6,6 +6,8 @@ import {parseCookies, destroyCookie} from "nookies"
 import baseUrl from "../utils/baseUrl"
 import {redirectUser} from "../utils/authUser"
 import 'react-toastify/dist/ReactToastify.css';
+import "cropperjs/dist/cropper.css"
+
 
 //
 //The component prop is the active page. whenver we navigate between routes, component will change to the new page
