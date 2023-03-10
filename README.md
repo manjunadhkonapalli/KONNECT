@@ -44,6 +44,7 @@ This is the most complex MERN app that i have ever created
 ![Screenshot (137)](https://user-images.githubusercontent.com/101473079/224413197-251df0a7-7f57-4c85-8ae9-0384c9b78e2f.png)
 
 * **FULLY RESPONSIVE** Layout for Mobile, Tablet and Desktop Screens.
+
 **Mobile view**
 ![Screenshot (146)](https://user-images.githubusercontent.com/101473079/224414984-e09c71c6-889b-44d3-a9bb-5eb8b5a52f47.png)
 
@@ -51,7 +52,7 @@ This is the most complex MERN app that i have ever created
 ![Screenshot (145)](https://user-images.githubusercontent.com/101473079/224415037-3ce5775b-4f9e-4d6c-bf66-9fc69e61cc6e.png)
 
 **Desktop view**
-![Screenshot (145)](https://user-images.githubusercontent.com/101473079/224415066-64c820cc-b5e1-4aa6-97a6-bb67484ae5c9.png)
+![Screenshot (147)](https://user-images.githubusercontent.com/101473079/224417304-d7f56c7a-3c9d-4a33-b7ea-859cee244123.png)
 
 * Modals for posts.
 ![Screenshot (149)](https://user-images.githubusercontent.com/101473079/224415256-0de67673-e68e-49ba-bea2-8196ea923803.png)
