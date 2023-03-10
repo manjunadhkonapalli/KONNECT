@@ -7,6 +7,7 @@ I have built this socialMedia with MERN- React, Nextjs, socket io for realTime c
 This is the most complex MERN app that i have ever created
 #
 
+To run the program, Download the files and run it on localhost. 
 
 
 **Key points**
